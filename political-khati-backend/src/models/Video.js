@@ -9,72 +9,120 @@ const videoSchema = new mongoose.Schema(
       type: String,
       required: [true, "Video title is required"],
       trim: true,
-      maxlength: 300,
+      maxlength: [
+        300,
+        "Video title cannot exceed 300 characters",
+      ],
     },
+
+    /*
+    |--------------------------------------------------------------------------
+    | Public URL Slug
+    |--------------------------------------------------------------------------
+    */
 
     slug: {
       type: String,
-      required: true,
+      required: [true, "Video slug is required"],
       unique: true,
       lowercase: true,
       trim: true,
-      index: true,
     },
 
-    metaTitle: {
+    /*
+    |--------------------------------------------------------------------------
+    | Video Description
+    |--------------------------------------------------------------------------
+    */
+
+    description: {
       type: String,
       default: "",
       trim: true,
-      maxlength: 300,
-    },
-
-    metaDescription: {
-      type: String,
-      default: "",
-      trim: true,
-      maxlength: 500,
-    },
-
-    metaKeywords: {
-      type: [String],
-      default: [],
-    },
-
-    category: {
-      type: String,
-      default: "Politics",
-      trim: true,
+      maxlength: [
+        500,
+        "Video description cannot exceed 500 characters",
+      ],
     },
 
     youtubeUrl: {
       type: String,
-      required: true,
+      required: [true, "YouTube URL is required"],
       trim: true,
     },
 
     youtubeVideoId: {
       type: String,
-      required: true,
+      required: [true, "YouTube video ID is required"],
       trim: true,
+      maxlength: [
+        20,
+        "Invalid YouTube video ID",
+      ],
+      index: true,
     },
 
     thumbnail: {
       type: String,
-      required: true,
+      required: [true, "Video thumbnail is required"],
+      trim: true,
     },
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reporter is Optional
+    |--------------------------------------------------------------------------
+    */
 
     reporter: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
-      maxlength: 150,
+      maxlength: [
+        150,
+        "Reporter name cannot exceed 150 characters",
+      ],
     },
 
     district: {
       type: String,
-      required: true,
-      enum: DISTRICTS,
+      required: [true, "District is required"],
+
+      enum: {
+        values: DISTRICTS,
+        message: "{VALUE} is not a valid district",
+      },
+
       trim: true,
+    },
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tags
+    |--------------------------------------------------------------------------
+    */
+
+    tags: {
+      type: [String],
+      default: [],
+
+      set(values) {
+        if (!Array.isArray(values)) {
+          return [];
+        }
+
+        return [
+          ...new Set(
+            values
+              .map((value) =>
+                String(value)
+                  .trim()
+                  .toLowerCase()
+              )
+              .filter(Boolean)
+          ),
+        ];
+      },
     },
 
     isPublished: {
@@ -90,6 +138,10 @@ const videoSchema = new mongoose.Schema(
     views: {
       type: Number,
       default: 0,
+      min: [
+        0,
+        "Views cannot be negative",
+      ],
     },
 
     publishedAt: {
@@ -99,27 +151,78 @@ const videoSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+
+    collection:
+      "political_khati_videos",
   }
 );
 
-videoSchema.pre("validate", function () {
-  if (this.title) {
-    if (!this.slug) {
-      this.slug = slugify(this.title, {
-        lower: true,
-        strict: true,
-      });
+/*
+|--------------------------------------------------------------------------
+| Slug and Publishing Defaults
+|--------------------------------------------------------------------------
+*/
+
+videoSchema.pre(
+  "validate",
+  function () {
+    /*
+    |--------------------------------------------------------------------------
+    | Fallback Slug Generator
+    |--------------------------------------------------------------------------
+    | The controller normally generates the unique slug.
+    */
+
+    if (
+      this.title &&
+      !this.slug
+    ) {
+      const generatedSlug =
+        slugify(this.title, {
+          lower: true,
+          strict: true,
+          trim: true,
+        });
+
+      /*
+       * Use YouTube ID when an Odia-only
+       * title does not produce a slug.
+       */
+
+      this.slug =
+        generatedSlug ||
+        `video-${String(
+          this.youtubeVideoId ||
+            Date.now()
+        ).toLowerCase()}`;
     }
 
-    if (!this.metaTitle) {
-      this.metaTitle = this.title;
+    /*
+    |--------------------------------------------------------------------------
+    | Published Date
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      this.isPublished &&
+      !this.publishedAt
+    ) {
+      this.publishedAt =
+        new Date();
+    }
+
+    if (!this.isPublished) {
+      this.publishedAt =
+        null;
     }
   }
+);
 
-  if (!this.metaDescription) {
-    this.metaDescription = this.title;
-  }
-});
+/*
+|--------------------------------------------------------------------------
+| Database Indexes
+|--------------------------------------------------------------------------
+*/
 
 videoSchema.index({
   isPublished: 1,
@@ -129,22 +232,42 @@ videoSchema.index({
 videoSchema.index({
   isFlash: 1,
   isPublished: 1,
+  publishedAt: -1,
 });
 
 videoSchema.index({
   district: 1,
   isPublished: 1,
+  publishedAt: -1,
 });
 
 videoSchema.index({
-  category: 1,
-  isPublished: 1,
+  reporter: 1,
+});
+
+videoSchema.index({
+  tags: 1,
+});
+
+videoSchema.index({
+  views: -1,
 });
 
 videoSchema.index({
   createdAt: -1,
 });
 
-const Video = mongoose.model("Video", videoSchema);
+/*
+|--------------------------------------------------------------------------
+| Model
+|--------------------------------------------------------------------------
+*/
+
+const Video =
+  mongoose.models.Video ||
+  mongoose.model(
+    "Video",
+    videoSchema
+  );
 
 export default Video;

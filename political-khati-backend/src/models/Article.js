@@ -3,30 +3,36 @@ import slugify from "slugify";
 
 import DISTRICTS from "../constants/districts.js";
 
+/*
+|--------------------------------------------------------------------------
+| Article Image Schema
+|--------------------------------------------------------------------------
+*/
+
 const imageSchema = new mongoose.Schema(
   {
     url: {
       type: String,
-      required: true,
+      required: [true, "Image URL is required"],
       trim: true,
     },
 
     key: {
       type: String,
-      required: true,
-      trim: true,
-    },
-
-    caption: {
-      type: String,
-      default: "",
+      required: [true, "Image key is required"],
       trim: true,
     },
   },
   {
     _id: false,
-  },
+  }
 );
+
+/*
+|--------------------------------------------------------------------------
+| Article Schema
+|--------------------------------------------------------------------------
+*/
 
 const articleSchema = new mongoose.Schema(
   {
@@ -34,40 +40,23 @@ const articleSchema = new mongoose.Schema(
       type: String,
       required: [true, "Article title is required"],
       trim: true,
-      maxlength: [300, "Title cannot exceed 300 characters"],
+      maxlength: [
+        300,
+        "Title cannot exceed 300 characters",
+      ],
     },
+
+    /*
+    |--------------------------------------------------------------------------
+    | Used for public article URLs
+    |--------------------------------------------------------------------------
+    */
 
     slug: {
       type: String,
-      required: true,
+      required: [true, "Article slug is required"],
       unique: true,
       lowercase: true,
-      trim: true,
-      index: true,
-    },
-
-    metaTitle: {
-      type: String,
-      default: "",
-      trim: true,
-      maxlength: 300,
-    },
-
-    metaDescription: {
-      type: String,
-      default: "",
-      trim: true,
-      maxlength: 500,
-    },
-
-    metaKeywords: {
-      type: [String],
-      default: [],
-    },
-
-    category: {
-      type: String,
-      default: "Politics",
       trim: true,
     },
 
@@ -76,26 +65,75 @@ const articleSchema = new mongoose.Schema(
       default: "",
     },
 
+    /*
+    |--------------------------------------------------------------------------
+    | Optional Reporter
+    |--------------------------------------------------------------------------
+    */
+
     reporter: {
       type: String,
-      required: [true, "Reporter name is required"],
+      default: "",
       trim: true,
-      maxlength: [150, "Reporter name cannot exceed 150 characters"],
+      maxlength: [
+        150,
+        "Reporter name cannot exceed 150 characters",
+      ],
     },
 
     district: {
       type: String,
       required: [true, "District is required"],
+
       enum: {
         values: DISTRICTS,
         message: "{VALUE} is not a valid district",
       },
+
       trim: true,
+    },
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tags entered as comma-separated values in the admin page
+    |--------------------------------------------------------------------------
+    */
+
+    tags: {
+      type: [String],
+      default: [],
+
+      set(values) {
+        if (!Array.isArray(values)) {
+          return [];
+        }
+
+        return [
+          ...new Set(
+            values
+              .map((value) =>
+                String(value)
+                  .trim()
+                  .toLowerCase()
+              )
+              .filter(Boolean)
+          ),
+        ];
+      },
     },
 
     images: {
       type: [imageSchema],
       default: [],
+
+      validate: {
+        validator(images) {
+          return images.length <= 5;
+        },
+
+        message:
+          "A maximum of 5 article images can be stored",
+      },
     },
 
     isPublished: {
@@ -111,7 +149,10 @@ const articleSchema = new mongoose.Schema(
     views: {
       type: Number,
       default: 0,
-      min: 0,
+      min: [
+        0,
+        "Views cannot be negative",
+      ],
     },
 
     publishedAt: {
@@ -121,42 +162,75 @@ const articleSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+
+    collection:
+      "political_khati_articles",
+  }
 );
 
 /*
 |--------------------------------------------------------------------------
-| Automatically generate SEO defaults
+| Slug and Publishing Defaults
 |--------------------------------------------------------------------------
 */
 
-articleSchema.pre("validate", function () {
-  if (this.title) {
-    if (!this.slug) {
-      this.slug = slugify(this.title, {
-        lower: true,
-        strict: true,
-        trim: true,
-      });
+articleSchema.pre(
+  "validate",
+  function () {
+    /*
+    |--------------------------------------------------------------------------
+    | Fallback slug generation
+    |--------------------------------------------------------------------------
+    | The controller normally creates the unique slug.
+    */
+
+    if (
+      this.title &&
+      !this.slug
+    ) {
+      const generatedSlug =
+        slugify(this.title, {
+          lower: true,
+          strict: true,
+          trim: true,
+        });
+
+      /*
+       * Slugify may return an empty value
+       * for an Odia-only title.
+       */
+
+      this.slug =
+        generatedSlug ||
+        `article-${Date.now()}`;
     }
 
-    if (!this.metaTitle) {
-      this.metaTitle = this.title;
+    /*
+    |--------------------------------------------------------------------------
+    | Published Date
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      this.isPublished &&
+      !this.publishedAt
+    ) {
+      this.publishedAt =
+        new Date();
+    }
+
+    if (
+      !this.isPublished
+    ) {
+      this.publishedAt =
+        null;
     }
   }
-
-  if (!this.metaDescription && this.content) {
-    this.metaDescription = this.content
-      .replace(/<[^>]+>/g, "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .substring(0, 170);
-  }
-});
+);
 
 /*
 |--------------------------------------------------------------------------
-| Indexes
+| Database Indexes
 |--------------------------------------------------------------------------
 */
 
@@ -178,13 +252,11 @@ articleSchema.index({
 });
 
 articleSchema.index({
-  category: 1,
-  isPublished: 1,
-  publishedAt: -1,
+  reporter: 1,
 });
 
 articleSchema.index({
-  reporter: 1,
+  tags: 1,
 });
 
 articleSchema.index({
@@ -195,6 +267,17 @@ articleSchema.index({
   createdAt: -1,
 });
 
-const Article = mongoose.model("Article", articleSchema);
+/*
+|--------------------------------------------------------------------------
+| Model
+|--------------------------------------------------------------------------
+*/
+
+const Article =
+  mongoose.models.Article ||
+  mongoose.model(
+    "Article",
+    articleSchema
+  );
 
 export default Article;

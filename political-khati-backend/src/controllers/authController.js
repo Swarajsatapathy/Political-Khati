@@ -6,29 +6,30 @@ import generateToken from "../utils/generateToken.js";
 const login = asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
-  console.log({
-  envUsername: process.env.ADMIN_USERNAME,
-  envPassword: process.env.ADMIN_PASSWORD,
-  requestUsername: username,
-  requestPassword: password,
-});
-
-  if (!username || !password) {
+  if (!username?.trim() || !password) {
     throw new ApiError(400, "Username and password are required");
   }
 
+  const adminUsername = process.env.ADMIN_USERNAME;
+  const adminPassword = process.env.ADMIN_PASSWORD;
 
+  if (!adminUsername || !adminPassword) {
+    console.error(
+      "ADMIN_USERNAME or ADMIN_PASSWORD is missing from environment variables"
+    );
 
-  if (username !== process.env.ADMIN_USERNAME) {
-    throw new ApiError(401, "Invalid credentials");
+    throw new ApiError(500, "Admin login is not configured");
   }
 
-  if (password !== process.env.ADMIN_PASSWORD) {
+  const isUsernameCorrect = username.trim() === adminUsername;
+  const isPasswordCorrect = password === adminPassword;
+
+  if (!isUsernameCorrect || !isPasswordCorrect) {
     throw new ApiError(401, "Invalid credentials");
   }
 
   const token = generateToken({
-    username,
+    username: adminUsername,
     role: "admin",
   });
 
@@ -37,21 +38,30 @@ const login = asyncHandler(async (req, res) => {
       200,
       {
         token,
+        admin: {
+          username: adminUsername,
+          role: "admin",
+        },
       },
-      "Login successful",
-    ),
+      "Login successful"
+    )
   );
 });
 
 const verify = asyncHandler(async (req, res) => {
+  if (!req.admin) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
   return res.status(200).json(
     new ApiResponse(
       200,
       {
         username: req.admin.username,
+        role: req.admin.role,
       },
-      "Token is valid",
-    ),
+      "Token is valid"
+    )
   );
 });
 

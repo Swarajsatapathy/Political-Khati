@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "dev": "node --watch src/server.js -p 5000",
+    "start": "node src/server.js -p 5000"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1098.0",

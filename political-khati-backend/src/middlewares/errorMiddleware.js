@@ -1,25 +1,25 @@
-import ApiError from "../utils/ApiError.js";
+import multer from "multer";
 
-const errorMiddleware = (
-  err,
-  req,
-  res,
-  next
-) => {
-  let error = err;
+const errorMiddleware = (error, req, res, next) => {
+  let statusCode = error.statusCode || 500;
+  let message = error.message || "Internal server error";
 
-  if (!(error instanceof ApiError)) {
-    error = new ApiError(
-      error.statusCode || 500,
-      error.message || "Internal Server Error"
-    );
+  if (error instanceof multer.MulterError) {
+    statusCode = 400;
+
+    if (error.code === "LIMIT_FILE_SIZE") {
+      message = "Each image must be smaller than 5 MB";
+    } else if (error.code === "LIMIT_FILE_COUNT") {
+      message = "A maximum of 5 images can be uploaded";
+    } else if (error.code === "LIMIT_UNEXPECTED_FILE") {
+      message = "Unexpected image field or too many images";
+    }
   }
 
-  return res.status(error.statusCode).json({
+  return res.status(statusCode).json({
     success: false,
-    message: error.message,
-    errors: error.errors || [],
-    ...(process.env.NODE_ENV === "development" && {
+    message,
+    ...(process.env.NODE_ENV !== "production" && {
       stack: error.stack,
     }),
   });

@@ -2,16 +2,28 @@ import mongoose from "mongoose";
 
 const connectDB = async () => {
   try {
+    const mongoUri = process.env.MONGO_URI;
+    const databaseName =
+      process.env.MONGO_DB_NAME || "political-khati";
+
+    if (!mongoUri) {
+      throw new Error(
+        "MONGO_URI is missing from environment variables"
+      );
+    }
+
     mongoose.set("strictQuery", true);
 
-    const conn = await mongoose.connect(process.env.MONGO_URI);
+    const connection = await mongoose.connect(mongoUri, {
+      dbName: databaseName,
+    });
 
     console.log(
-      `✅ MongoDB Connected: ${conn.connection.host}`
+      `✅ MongoDB connected: ${connection.connection.host}/${connection.connection.name}`
     );
   } catch (error) {
     console.error(
-      "❌ MongoDB Connection Failed:",
+      "❌ MongoDB connection failed:",
       error.message
     );
 
