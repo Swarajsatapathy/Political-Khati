@@ -15,16 +15,80 @@ const app = express();
 
 /*
 |--------------------------------------------------------------------------
-| Allowed Origins
+| CORS Configuration
 |--------------------------------------------------------------------------
 */
 
-const allowedOrigins = [
+const normalizeOrigin = (origin) => {
+  return origin?.trim().replace(/\/+$/, "");
+};
+
+const environmentOrigins = [
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
-  "http://localhost:3000",
-  "http://localhost:3001",
-].filter(Boolean);
+  ...(process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",")
+    : []),
+];
+
+const allowedOrigins = new Set(
+  [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    ...environmentOrigins,
+  ]
+    .filter(Boolean)
+    .map(normalizeOrigin)
+);
+
+const corsOptions = {
+  origin(origin, callback) {
+    /*
+     * Allow requests without an Origin header,
+     * such as Postman, curl and Render health checks.
+     */
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const normalizedOrigin =
+      normalizeOrigin(origin);
+
+    if (
+      allowedOrigins.has(normalizedOrigin)
+    ) {
+      return callback(null, true);
+    }
+
+    console.warn(
+      `CORS blocked origin: ${origin}`
+    );
+
+    return callback(
+      new Error(
+        `Origin ${origin} is not allowed by CORS`
+      )
+    );
+  },
+
+  methods: [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+  ],
+
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+  ],
+
+  credentials: true,
+
+  optionsSuccessStatus: 204,
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -32,28 +96,19 @@ const allowedOrigins = [
 |--------------------------------------------------------------------------
 */
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      // Allow requests without an Origin header,
-      // such as Postman, Render health checks and server-to-server requests.
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 
 app.use(helmet());
+
 app.use(compression());
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+
+app.use(
+  morgan(
+    process.env.NODE_ENV === "production"
+      ? "combined"
+      : "dev"
+  )
+);
 
 app.use(
   express.json({
@@ -77,7 +132,17 @@ app.use(
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "Political Khati Backend API 🚀",
+    message:
+      "Political Khati Backend API 🚀",
+  });
+});
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message:
+      "Political Khati backend is healthy",
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -88,9 +153,21 @@ app.get("/", (req, res) => {
 */
 
 app.use("/api/auth", authRoutes);
-app.use("/api/articles", articleRoutes);
-app.use("/api/videos", videoRoutes);
-app.use("/api/dashboard", dashboardRoutes);
+
+app.use(
+  "/api/articles",
+  articleRoutes
+);
+
+app.use(
+  "/api/videos",
+  videoRoutes
+);
+
+app.use(
+  "/api/dashboard",
+  dashboardRoutes
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -109,7 +186,6 @@ app.use((req, res) => {
 |--------------------------------------------------------------------------
 | Global Error Handler
 |--------------------------------------------------------------------------
-| This must always remain after all routes and the 404 handler.
 */
 
 app.use(errorMiddleware);
