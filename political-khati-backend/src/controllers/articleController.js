@@ -7,22 +7,18 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
-import {
-  uploadToS3,
-  deleteFromS3,
-} from "../utils/s3Upload.js";
+import { uploadToS3, deleteFromS3 } from "../utils/s3Upload.js";
 
 const MAX_ARTICLE_IMAGES = 5;
 const MAX_PAGE_SIZE = 100;
 
-const allowedSortFields =
-  new Set([
-    "publishedAt",
-    "createdAt",
-    "updatedAt",
-    "views",
-    "title",
-  ]);
+const allowedSortFields = new Set([
+  "publishedAt",
+  "createdAt",
+  "updatedAt",
+  "views",
+  "title",
+]);
 
 /*
 |--------------------------------------------------------------------------
@@ -52,54 +48,26 @@ const ARTICLE_LIST_FIELDS = [
 |--------------------------------------------------------------------------
 */
 
-const toBoolean = (
-  value
-) => {
-  return (
-    value === true ||
-    value === "true"
-  );
+const toBoolean = (value) => {
+  return value === true || value === "true";
 };
 
-const normalizeText = (
-  value,
-  fallback = ""
-) => {
-  if (
-    value === undefined ||
-    value === null
-  ) {
+const normalizeText = (value, fallback = "") => {
+  if (value === undefined || value === null) {
     return fallback;
   }
 
   return String(value).trim();
 };
 
-const escapeRegex = (
-  value
-) => {
-  return String(value).replace(
-    /[.*+?^${}()|[\]\\]/g,
-    "\\$&"
-  );
+const escapeRegex = (value) => {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
-const parsePositiveInteger = (
-  value,
-  fallback
-) => {
-  const parsedValue =
-    Number.parseInt(
-      value,
-      10
-    );
+const parsePositiveInteger = (value, fallback) => {
+  const parsedValue = Number.parseInt(value, 10);
 
-  if (
-    Number.isNaN(
-      parsedValue
-    ) ||
-    parsedValue < 1
-  ) {
+  if (Number.isNaN(parsedValue) || parsedValue < 1) {
     return fallback;
   }
 
@@ -112,50 +80,26 @@ const parsePositiveInteger = (
 |--------------------------------------------------------------------------
 */
 
-const parseStringArray = (
-  value
-) => {
+const parseStringArray = (value) => {
   if (!value) {
     return [];
   }
 
-  if (
-    Array.isArray(value)
-  ) {
-    return value
-      .map((item) =>
-        String(item).trim()
-      )
-      .filter(Boolean);
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
   }
 
-  if (
-    typeof value ===
-    "string"
-  ) {
+  if (typeof value === "string") {
     try {
-      const parsed =
-        JSON.parse(value);
+      const parsed = JSON.parse(value);
 
-      if (
-        Array.isArray(
-          parsed
-        )
-      ) {
-        return parsed
-          .map((item) =>
-            String(
-              item
-            ).trim()
-          )
-          .filter(Boolean);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => String(item).trim()).filter(Boolean);
       }
     } catch {
       return value
         .split(",")
-        .map((item) =>
-          item.trim()
-        )
+        .map((item) => item.trim())
         .filter(Boolean);
     }
   }
@@ -171,33 +115,23 @@ const parseStringArray = (
 | Internally, the new backend stores these values as tags.
 */
 
-const addLegacyTagField = (
-  article
-) => {
+const addLegacyTagField = (article) => {
   const data =
-    typeof article?.toObject ===
-    "function"
-      ? article.toObject()
-      : article;
+    typeof article?.toObject === "function" ? article.toObject() : article;
 
   return {
     ...data,
 
-    metaKeywords:
-      data?.tags || [],
+    metaKeywords: data?.tags || [],
   };
 };
 
-const normalizeTags = (
-  tags
-) => {
+const normalizeTags = (tags) => {
   return [
     ...new Set(
       parseStringArray(tags)
-        .map((tag) =>
-          tag.toLowerCase()
-        )
-        .filter(Boolean)
+        .map((tag) => tag.toLowerCase())
+        .filter(Boolean),
     ),
   ];
 };
@@ -208,32 +142,15 @@ const normalizeTags = (
 |--------------------------------------------------------------------------
 */
 
-const validateDistrict = (
-  district
-) => {
-  const normalizedDistrict =
-    normalizeText(
-      district
-    );
+const validateDistrict = (district) => {
+  const normalizedDistrict = normalizeText(district);
 
-  if (
-    !normalizedDistrict
-  ) {
-    throw new ApiError(
-      400,
-      "District is required"
-    );
+  if (!normalizedDistrict) {
+    throw new ApiError(400, "District is required");
   }
 
-  if (
-    !DISTRICTS.includes(
-      normalizedDistrict
-    )
-  ) {
-    throw new ApiError(
-      400,
-      `${normalizedDistrict} is not a valid district`
-    );
+  if (!DISTRICTS.includes(normalizedDistrict)) {
+    throw new ApiError(400, `${normalizedDistrict} is not a valid district`);
   }
 
   return normalizedDistrict;
@@ -245,65 +162,47 @@ const validateDistrict = (
 |--------------------------------------------------------------------------
 */
 
-const generateUniqueSlug =
-  async (
-    title,
-    currentArticleId = null
-  ) => {
-    const generatedSlug =
-      slugify(title, {
-        lower: true,
-        strict: true,
-        trim: true,
-      });
+const generateUniqueSlug = async (title, currentArticleId = null) => {
+  const generatedSlug = slugify(title, {
+    lower: true,
+    strict: true,
+    trim: true,
+  });
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | Fallback for Odia-only titles
     |--------------------------------------------------------------------------
     */
 
-    const baseSlug =
-      generatedSlug ||
-      `article-${Date.now()}`;
+  const baseSlug = generatedSlug || `article-${Date.now()}`;
 
-    let candidateSlug =
-      baseSlug;
+  let candidateSlug = baseSlug;
 
-    let counter = 2;
+  let counter = 2;
 
-    while (true) {
-      const filter = {
-        slug:
-          candidateSlug,
+  while (true) {
+    const filter = {
+      slug: candidateSlug,
+    };
+
+    if (currentArticleId) {
+      filter._id = {
+        $ne: currentArticleId,
       };
-
-      if (
-        currentArticleId
-      ) {
-        filter._id = {
-          $ne:
-            currentArticleId,
-        };
-      }
-
-      const existingArticle =
-        await Article.exists(
-          filter
-        );
-
-      if (
-        !existingArticle
-      ) {
-        return candidateSlug;
-      }
-
-      candidateSlug =
-        `${baseSlug}-${counter}`;
-
-      counter += 1;
     }
-  };
+
+    const existingArticle = await Article.exists(filter);
+
+    if (!existingArticle) {
+      return candidateSlug;
+    }
+
+    candidateSlug = `${baseSlug}-${counter}`;
+
+    counter += 1;
+  }
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -311,51 +210,26 @@ const generateUniqueSlug =
 |--------------------------------------------------------------------------
 */
 
-const deleteUploadedImages =
-  async (
-    images = []
-  ) => {
-    const imageKeys =
-      images
-        .map(
-          (image) =>
-            image?.key
-        )
-        .filter(Boolean);
+const deleteUploadedImages = async (images = []) => {
+  const imageKeys = images.map((image) => image?.key).filter(Boolean);
 
-    if (
-      !imageKeys.length
-    ) {
-      return;
-    }
+  if (!imageKeys.length) {
+    return;
+  }
 
-    const results =
-      await Promise.allSettled(
-        imageKeys.map(
-          (key) =>
-            deleteFromS3(
-              key
-            )
-        )
+  const results = await Promise.allSettled(
+    imageKeys.map((key) => deleteFromS3(key)),
+  );
+
+  results.forEach((result, index) => {
+    if (result.status === "rejected") {
+      console.error(
+        `Failed to delete uploaded image: ${imageKeys[index]}`,
+        result.reason,
       );
-
-    results.forEach(
-      (
-        result,
-        index
-      ) => {
-        if (
-          result.status ===
-          "rejected"
-        ) {
-          console.error(
-            `Failed to delete uploaded image: ${imageKeys[index]}`,
-            result.reason
-          );
-        }
-      }
-    );
-  };
+    }
+  });
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -363,171 +237,105 @@ const deleteUploadedImages =
 |--------------------------------------------------------------------------
 */
 
-const createArticle =
-  asyncHandler(
-    async (req, res) => {
-      const {
-        title,
-        content,
-        reporter,
-        district,
+const createArticle = asyncHandler(async (req, res) => {
+  const {
+    title,
+    content,
+    reporter,
+    district,
 
-        /*
-         * tags is the new field.
-         * metaKeywords keeps the current admin page compatible.
-         */
+    /*
+     * tags is the new field.
+     * metaKeywords keeps the current admin page compatible.
+     */
 
-        tags,
-        metaKeywords,
+    tags,
+    metaKeywords,
 
-        isPublished,
-        isFlash,
-      } = req.body;
+    isPublished,
+    isFlash,
+  } = req.body;
 
-      const normalizedTitle =
-        normalizeText(
-          title
-        );
+  const normalizedTitle = normalizeText(title);
 
-      if (
-        !normalizedTitle
-      ) {
-        throw new ApiError(
-          400,
-          "Article title is required"
-        );
-      }
+  if (!normalizedTitle) {
+    throw new ApiError(400, "Article title is required");
+  }
 
-      const normalizedDistrict =
-        validateDistrict(
-          district
-        );
+  const normalizedDistrict = validateDistrict(district);
 
-      const files =
-        req.files || [];
+  const files = req.files || [];
 
-      if (
-        files.length >
-        MAX_ARTICLE_IMAGES
-      ) {
-        throw new ApiError(
-          400,
-          `Maximum ${MAX_ARTICLE_IMAGES} images allowed`
-        );
-      }
+  if (files.length > MAX_ARTICLE_IMAGES) {
+    throw new ApiError(400, `Maximum ${MAX_ARTICLE_IMAGES} images allowed`);
+  }
 
-      const uploadedImages =
-        [];
+  const uploadedImages = [];
 
-      try {
-        /*
+  try {
+    /*
         |--------------------------------------------------------------------------
         | Upload Images
         |--------------------------------------------------------------------------
         */
 
-        for (
-          const file of files
-        ) {
-          const uploaded =
-            await uploadToS3(
-              file.buffer,
-              file.mimetype,
-              "articles"
-            );
+    for (const file of files) {
+      const uploaded = await uploadToS3(file.buffer, file.mimetype, "articles");
 
-          uploadedImages.push(
-            {
-              url:
-                uploaded.url,
+      uploadedImages.push({
+        url: uploaded.url,
 
-              key:
-                uploaded.key,
-            }
-          );
-        }
+        key: uploaded.key,
+      });
+    }
 
-        const published =
-          toBoolean(
-            isPublished
-          );
+    const published = toBoolean(isPublished);
 
-        const slug =
-          await generateUniqueSlug(
-            normalizedTitle
-          );
+    const slug = await generateUniqueSlug(normalizedTitle);
 
-        const article =
-          await Article.create(
-            {
-              title:
-                normalizedTitle,
+    const article = await Article.create({
+      title: normalizedTitle,
 
-              slug,
+      slug,
 
-              content:
-                content ?? "",
+      content: content ?? "",
 
-              reporter:
-                normalizeText(
-                  reporter
-                ),
+      reporter: normalizeText(reporter),
 
-              district:
-                normalizedDistrict,
+      district: normalizedDistrict,
 
-              tags:
-                normalizeTags(
-                  tags ??
-                    metaKeywords
-                ),
+      tags: normalizeTags(tags ?? metaKeywords),
 
-              images:
-                uploadedImages,
+      images: uploadedImages,
 
-              isPublished:
-                published,
+      isPublished: published,
 
-              isFlash:
-                toBoolean(
-                  isFlash
-                ),
+      isFlash: toBoolean(isFlash),
 
-              publishedAt:
-                published
-                  ? new Date()
-                  : null,
-            }
-          );
+      publishedAt: published ? new Date() : null,
+    });
 
-        return res
-          .status(201)
-          .json(
-            new ApiResponse(
-              201,
+    return res.status(201).json(
+      new ApiResponse(
+        201,
 
-              addLegacyTagField(
-                article
-              ),
+        addLegacyTagField(article),
 
-              "Article created successfully"
-            )
-          );
-      } catch (error) {
-        /*
+        "Article created successfully",
+      ),
+    );
+  } catch (error) {
+    /*
         |--------------------------------------------------------------------------
         | Remove Uploaded Images if Database Creation Fails
         |--------------------------------------------------------------------------
         */
 
-        await deleteUploadedImages(
-          uploadedImages
-        );
+    await deleteUploadedImages(uploadedImages);
 
-        throw error;
-      }
-    }
-  );
+    throw error;
+  }
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -535,297 +343,202 @@ const createArticle =
 |--------------------------------------------------------------------------
 */
 
-const getArticleList =
-  async (
-    req,
-    res,
-    {
-      adminRequest = false,
-    } = {}
-  ) => {
-    const {
-      page = 1,
-      limit = 20,
-      district,
-      reporter,
-      flash,
-      published,
-      tag,
-      search,
-      sortBy = "publishedAt",
-      order = "desc",
-    } = req.query;
+const getArticleList = async (req, res, { adminRequest = false } = {}) => {
+  const {
+    page = 1,
+    limit = 20,
+    district,
+    reporter,
+    flash,
+    published,
+    tag,
+    search,
+    sortBy = "publishedAt",
+    order = "desc",
+  } = req.query;
 
-    const filter = {};
+  const filter = {};
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | Publication Filter
     |--------------------------------------------------------------------------
     */
 
-    if (
-      adminRequest
-    ) {
-      if (
-        published !==
-        undefined
-      ) {
-        filter.isPublished =
-          toBoolean(
-            published
-          );
-      }
-    } else {
-      filter.isPublished =
-        true;
+  if (adminRequest) {
+    if (published !== undefined) {
+      filter.isPublished = toBoolean(published);
     }
+  } else {
+    filter.isPublished = true;
+  }
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | District Filter
     |--------------------------------------------------------------------------
     */
 
-    if (district) {
-      filter.district =
-        validateDistrict(
-          district
-        );
-    }
+  if (district) {
+    filter.district = validateDistrict(district);
+  }
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | Reporter Filter
     |--------------------------------------------------------------------------
     */
 
-    if (reporter) {
-      filter.reporter = {
-        $regex:
-          escapeRegex(
-            reporter
-          ),
+  if (reporter) {
+    filter.reporter = {
+      $regex: escapeRegex(reporter),
 
-        $options: "i",
-      };
-    }
+      $options: "i",
+    };
+  }
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | Flash Filter
     |--------------------------------------------------------------------------
     */
 
-    if (
-      flash !==
-      undefined
-    ) {
-      filter.isFlash =
-        toBoolean(
-          flash
-        );
-    }
+  if (flash !== undefined) {
+    filter.isFlash = toBoolean(flash);
+  }
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | Tag Filter
     |--------------------------------------------------------------------------
     */
 
-    if (tag) {
-      filter.tags =
-        normalizeText(
-          tag
-        ).toLowerCase();
-    }
+  if (tag) {
+    filter.tags = normalizeText(tag).toLowerCase();
+  }
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | Search
     |--------------------------------------------------------------------------
     */
 
-    if (search) {
-      const safeSearch =
-        escapeRegex(
-          search
-        );
+  if (search) {
+    const safeSearch = escapeRegex(search);
 
-      filter.$or = [
-        {
-          title: {
-            $regex:
-              safeSearch,
+    filter.$or = [
+      {
+        title: {
+          $regex: safeSearch,
 
-            $options:
-              "i",
-          },
+          $options: "i",
         },
+      },
 
-        {
-          content: {
-            $regex:
-              safeSearch,
+      {
+        content: {
+          $regex: safeSearch,
 
-            $options:
-              "i",
-          },
+          $options: "i",
         },
+      },
 
-        {
-          reporter: {
-            $regex:
-              safeSearch,
+      {
+        reporter: {
+          $regex: safeSearch,
 
-            $options:
-              "i",
-          },
+          $options: "i",
         },
+      },
 
-        {
-          district: {
-            $regex:
-              safeSearch,
+      {
+        district: {
+          $regex: safeSearch,
 
-            $options:
-              "i",
-          },
+          $options: "i",
         },
+      },
 
-        {
-          tags: {
-            $regex:
-              safeSearch,
+      {
+        tags: {
+          $regex: safeSearch,
 
-            $options:
-              "i",
-          },
+          $options: "i",
         },
-      ];
-    }
+      },
+    ];
+  }
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | Pagination
     |--------------------------------------------------------------------------
     */
 
-    const pageNumber =
-      parsePositiveInteger(
-        page,
-        1
-      );
+  const pageNumber = parsePositiveInteger(page, 1);
 
-    const requestedLimit =
-      parsePositiveInteger(
-        limit,
-        20
-      );
+  const requestedLimit = parsePositiveInteger(limit, 20);
 
-    const pageSize =
-      Math.min(
-        requestedLimit,
-        MAX_PAGE_SIZE
-      );
+  const pageSize = Math.min(requestedLimit, MAX_PAGE_SIZE);
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | Sorting
     |--------------------------------------------------------------------------
     */
 
-    const selectedSortField =
-      allowedSortFields.has(
-        sortBy
-      )
-        ? sortBy
-        : "publishedAt";
+  const selectedSortField = allowedSortFields.has(sortBy)
+    ? sortBy
+    : "publishedAt";
 
-    const sortOrder =
-      order === "asc"
-        ? 1
-        : -1;
+  const sortOrder = order === "asc" ? 1 : -1;
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | Fetch Articles
     |--------------------------------------------------------------------------
     */
 
-    const [
-      articles,
-      total,
-    ] =
-      await Promise.all([
-        Article.find(
-          filter
-        )
-          .select(
-            ARTICLE_LIST_FIELDS
-          )
-          .sort({
-            [selectedSortField]:
-              sortOrder,
+  const [articles, total] = await Promise.all([
+    Article.find(filter)
+      .select(ARTICLE_LIST_FIELDS)
+      .sort({
+        [selectedSortField]: sortOrder,
 
-            _id:
-              sortOrder,
-          })
-          .skip(
-            (pageNumber -
-              1) *
-              pageSize
-          )
-          .limit(
-            pageSize
-          )
-          .lean(),
+        _id: sortOrder,
+      })
+      .skip((pageNumber - 1) * pageSize)
+      .limit(pageSize)
+      .lean(),
 
-        Article.countDocuments(
-          filter
-        ),
-      ]);
+    Article.countDocuments(filter),
+  ]);
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          {
-            articles,
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        articles,
 
-            pagination: {
-              total,
+        pagination: {
+          total,
 
-              page:
-                pageNumber,
+          page: pageNumber,
 
-              limit:
-                pageSize,
+          limit: pageSize,
 
-              totalPages:
-                total === 0
-                  ? 0
-                  : Math.ceil(
-                      total /
-                        pageSize
-                    ),
+          totalPages: total === 0 ? 0 : Math.ceil(total / pageSize),
 
-              hasNextPage:
-                pageNumber *
-                  pageSize <
-                total,
+          hasNextPage: pageNumber * pageSize < total,
 
-              hasPreviousPage:
-                pageNumber >
-                1,
-            },
-          },
+          hasPreviousPage: pageNumber > 1,
+        },
+      },
 
-          "Articles fetched successfully"
-        )
-      );
-  };
+      "Articles fetched successfully",
+    ),
+  );
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -833,22 +546,11 @@ const getArticleList =
 |--------------------------------------------------------------------------
 */
 
-const getPublishedArticles =
-  asyncHandler(
-    async (
-      req,
-      res
-    ) => {
-      return getArticleList(
-        req,
-        res,
-        {
-          adminRequest:
-            false,
-        }
-      );
-    }
-  );
+const getPublishedArticles = asyncHandler(async (req, res) => {
+  return getArticleList(req, res, {
+    adminRequest: false,
+  });
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -856,22 +558,11 @@ const getPublishedArticles =
 |--------------------------------------------------------------------------
 */
 
-const getAdminArticles =
-  asyncHandler(
-    async (
-      req,
-      res
-    ) => {
-      return getArticleList(
-        req,
-        res,
-        {
-          adminRequest:
-            true,
-        }
-      );
-    }
-  );
+const getAdminArticles = asyncHandler(async (req, res) => {
+  return getArticleList(req, res, {
+    adminRequest: true,
+  });
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -879,55 +570,35 @@ const getAdminArticles =
 |--------------------------------------------------------------------------
 */
 
-const getArticleBySlug =
-  asyncHandler(
-    async (
-      req,
-      res
-    ) => {
-      const slug =
-        normalizeText(
-          req.params.slug
-        ).toLowerCase();
+const getArticleBySlug = asyncHandler(async (req, res) => {
+  const slug = normalizeText(req.params.slug).toLowerCase();
 
-      const article =
-        await Article.findOneAndUpdate(
-          {
-            slug,
+  const article = await Article.findOneAndUpdate(
+    {
+      slug,
 
-            isPublished:
-              true,
-          },
+      isPublished: true,
+    },
 
-          {
-            $inc: {
-              views: 1,
-            },
-          },
+    {
+      $inc: {
+        views: 1,
+      },
+    },
 
-          {
-            new: true,
-          }
-        );
-
-      if (!article) {
-        throw new ApiError(
-          404,
-          "Article not found"
-        );
-      }
-
-      return res
-        .status(200)
-        .json(
-          new ApiResponse(
-            200,
-            article,
-            "Article fetched successfully"
-          )
-        );
-    }
+    {
+      returnDocument: "after",
+    },
   );
+
+  if (!article) {
+    throw new ApiError(404, "Article not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, article, "Article fetched successfully"));
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -935,39 +606,23 @@ const getArticleBySlug =
 |--------------------------------------------------------------------------
 */
 
-const getAdminArticleById =
-  asyncHandler(
-    async (
-      req,
-      res
-    ) => {
-      const article =
-        await Article.findById(
-          req.params.id
-        );
+const getAdminArticleById = asyncHandler(async (req, res) => {
+  const article = await Article.findById(req.params.id);
 
-      if (!article) {
-        throw new ApiError(
-          404,
-          "Article not found"
-        );
-      }
+  if (!article) {
+    throw new ApiError(404, "Article not found");
+  }
 
-      return res
-        .status(200)
-        .json(
-          new ApiResponse(
-            200,
+  return res.status(200).json(
+    new ApiResponse(
+      200,
 
-            addLegacyTagField(
-              article
-            ),
+      addLegacyTagField(article),
 
-            "Article fetched successfully"
-          )
-        );
-    }
+      "Article fetched successfully",
+    ),
   );
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -975,42 +630,25 @@ const getAdminArticleById =
 |--------------------------------------------------------------------------
 */
 
-const getFlashStories =
-  asyncHandler(
-    async (
-      _req,
-      res
-    ) => {
-      const articles =
-        await Article.find({
-          isFlash: true,
+const getFlashStories = asyncHandler(async (_req, res) => {
+  const articles = await Article.find({
+    isFlash: true,
 
-          isPublished:
-            true,
-        })
-          .select(
-            ARTICLE_LIST_FIELDS
-          )
-          .sort({
-            publishedAt:
-              -1,
+    isPublished: true,
+  })
+    .select(ARTICLE_LIST_FIELDS)
+    .sort({
+      publishedAt: -1,
 
-            _id: -1,
-          })
-          .limit(10)
-          .lean();
+      _id: -1,
+    })
+    .limit(10)
+    .lean();
 
-      return res
-        .status(200)
-        .json(
-          new ApiResponse(
-            200,
-            articles,
-            "Flash stories fetched successfully"
-          )
-        );
-    }
-  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, articles, "Flash stories fetched successfully"));
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -1018,339 +656,197 @@ const getFlashStories =
 |--------------------------------------------------------------------------
 */
 
-const updateArticle =
-  asyncHandler(
-    async (
-      req,
-      res
-    ) => {
-      const article =
-        await Article.findById(
-          req.params.id
-        );
+const updateArticle = asyncHandler(async (req, res) => {
+  const article = await Article.findById(req.params.id);
 
-      if (!article) {
-        throw new ApiError(
-          404,
-          "Article not found"
-        );
-      }
+  if (!article) {
+    throw new ApiError(404, "Article not found");
+  }
 
-      const {
-        title,
-        content,
-        reporter,
-        district,
+  const {
+    title,
+    content,
+    reporter,
+    district,
 
-        tags,
-        metaKeywords,
+    tags,
+    metaKeywords,
 
-        isPublished,
-        isFlash,
-        removeImages,
-      } = req.body;
+    isPublished,
+    isFlash,
+    removeImages,
+  } = req.body;
 
-      /*
+  /*
       |--------------------------------------------------------------------------
       | Basic Validation
       |--------------------------------------------------------------------------
       */
 
-      if (
-        title !==
-          undefined &&
-        !normalizeText(
-          title
-        )
-      ) {
-        throw new ApiError(
-          400,
-          "Article title cannot be empty"
-        );
-      }
+  if (title !== undefined && !normalizeText(title)) {
+    throw new ApiError(400, "Article title cannot be empty");
+  }
 
-      if (
-        district !==
-        undefined
-      ) {
-        validateDistrict(
-          district
-        );
-      }
+  if (district !== undefined) {
+    validateDistrict(district);
+  }
 
-      /*
+  /*
       |--------------------------------------------------------------------------
       | Existing Images to Remove
       |--------------------------------------------------------------------------
       */
 
-      const requestedKeysToRemove =
-        [
-          ...new Set(
-            parseStringArray(
-              removeImages
-            )
-          ),
-        ];
+  const requestedKeysToRemove = [...new Set(parseStringArray(removeImages))];
 
-      const existingKeys =
-        new Set(
-          article.images.map(
-            (image) =>
-              image.key
-          )
-        );
+  const existingKeys = new Set(article.images.map((image) => image.key));
 
-      const keysToRemove =
-        requestedKeysToRemove.filter(
-          (key) =>
-            existingKeys.has(
-              key
-            )
-        );
+  const keysToRemove = requestedKeysToRemove.filter((key) =>
+    existingKeys.has(key),
+  );
 
-      const remainingImages =
-        article.images.filter(
-          (image) =>
-            !keysToRemove.includes(
-              image.key
-            )
-        );
+  const remainingImages = article.images.filter(
+    (image) => !keysToRemove.includes(image.key),
+  );
 
-      /*
+  /*
       |--------------------------------------------------------------------------
       | New Images
       |--------------------------------------------------------------------------
       */
 
-      const newFiles =
-        req.files || [];
+  const newFiles = req.files || [];
 
-      if (
-        remainingImages.length +
-          newFiles.length >
-        MAX_ARTICLE_IMAGES
-      ) {
-        throw new ApiError(
-          400,
-          `Maximum ${MAX_ARTICLE_IMAGES} images allowed`
-        );
-      }
+  if (remainingImages.length + newFiles.length > MAX_ARTICLE_IMAGES) {
+    throw new ApiError(400, `Maximum ${MAX_ARTICLE_IMAGES} images allowed`);
+  }
 
-      const newlyUploadedImages =
-        [];
+  const newlyUploadedImages = [];
 
-      try {
-        /*
+  try {
+    /*
         |--------------------------------------------------------------------------
         | Upload New Images
         |--------------------------------------------------------------------------
         */
 
-        for (
-          const file of newFiles
-        ) {
-          const uploaded =
-            await uploadToS3(
-              file.buffer,
-              file.mimetype,
-              "articles"
-            );
+    for (const file of newFiles) {
+      const uploaded = await uploadToS3(file.buffer, file.mimetype, "articles");
 
-          newlyUploadedImages.push(
-            {
-              url:
-                uploaded.url,
+      newlyUploadedImages.push({
+        url: uploaded.url,
 
-              key:
-                uploaded.key,
-            }
-          );
-        }
+        key: uploaded.key,
+      });
+    }
 
-        article.images = [
-          ...remainingImages,
+    article.images = [...remainingImages, ...newlyUploadedImages];
 
-          ...newlyUploadedImages,
-        ];
-
-        /*
+    /*
         |--------------------------------------------------------------------------
         | Update Fields
         |--------------------------------------------------------------------------
         */
 
-        if (
-          title !==
-          undefined
-        ) {
-          article.title =
-            normalizeText(
-              title
-            );
-        }
+    if (title !== undefined) {
+      article.title = normalizeText(title);
+    }
 
-        if (
-          content !==
-          undefined
-        ) {
-          article.content =
-            content ?? "";
-        }
+    if (content !== undefined) {
+      article.content = content ?? "";
+    }
 
-        if (
-          reporter !==
-          undefined
-        ) {
-          article.reporter =
-            normalizeText(
-              reporter
-            );
-        }
+    if (reporter !== undefined) {
+      article.reporter = normalizeText(reporter);
+    }
 
-        if (
-          district !==
-          undefined
-        ) {
-          article.district =
-            validateDistrict(
-              district
-            );
-        }
+    if (district !== undefined) {
+      article.district = validateDistrict(district);
+    }
 
-        /*
+    /*
         |--------------------------------------------------------------------------
         | Update Tags
         |--------------------------------------------------------------------------
         */
 
-        if (
-          tags !==
-            undefined ||
-          metaKeywords !==
-            undefined
-        ) {
-          article.tags =
-            normalizeTags(
-              tags ??
-                metaKeywords
-            );
-        }
+    if (tags !== undefined || metaKeywords !== undefined) {
+      article.tags = normalizeTags(tags ?? metaKeywords);
+    }
 
-        if (
-          isFlash !==
-          undefined
-        ) {
-          article.isFlash =
-            toBoolean(
-              isFlash
-            );
-        }
+    if (isFlash !== undefined) {
+      article.isFlash = toBoolean(isFlash);
+    }
 
-        /*
+    /*
         |--------------------------------------------------------------------------
         | Publish or Draft
         |--------------------------------------------------------------------------
         */
 
-        if (
-          isPublished !==
-          undefined
-        ) {
-          const nextPublished =
-            toBoolean(
-              isPublished
-            );
+    if (isPublished !== undefined) {
+      const nextPublished = toBoolean(isPublished);
 
-          if (
-            nextPublished &&
-            !article.isPublished
-          ) {
-            article.publishedAt =
-              new Date();
-          }
+      if (nextPublished && !article.isPublished) {
+        article.publishedAt = new Date();
+      }
 
-          if (
-            !nextPublished
-          ) {
-            article.publishedAt =
-              null;
-          }
+      if (!nextPublished) {
+        article.publishedAt = null;
+      }
 
-          article.isPublished =
-            nextPublished;
-        }
+      article.isPublished = nextPublished;
+    }
 
-        /*
+    /*
         |--------------------------------------------------------------------------
         | Save Article
         |--------------------------------------------------------------------------
         */
 
-        await article.save();
+    await article.save();
 
-        /*
+    /*
         |--------------------------------------------------------------------------
         | Delete Removed Images from S3
         |--------------------------------------------------------------------------
         | Images are removed only after the database update succeeds.
         */
 
-        const deletionResults =
-          await Promise.allSettled(
-            keysToRemove.map(
-              (key) =>
-                deleteFromS3(
-                  key
-                )
-            )
-          );
+    const deletionResults = await Promise.allSettled(
+      keysToRemove.map((key) => deleteFromS3(key)),
+    );
 
-        deletionResults.forEach(
-          (
-            result,
-            index
-          ) => {
-            if (
-              result.status ===
-              "rejected"
-            ) {
-              console.error(
-                `Failed to delete image: ${keysToRemove[index]}`,
-                result.reason
-              );
-            }
-          }
+    deletionResults.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.error(
+          `Failed to delete image: ${keysToRemove[index]}`,
+          result.reason,
         );
+      }
+    });
 
-        return res
-          .status(200)
-          .json(
-            new ApiResponse(
-              200,
+    return res.status(200).json(
+      new ApiResponse(
+        200,
 
-              addLegacyTagField(
-                article
-              ),
+        addLegacyTagField(article),
 
-              "Article updated successfully"
-            )
-          );
-      } catch (error) {
-        /*
+        "Article updated successfully",
+      ),
+    );
+  } catch (error) {
+    /*
         |--------------------------------------------------------------------------
         | Roll Back Newly Uploaded Images
         |--------------------------------------------------------------------------
         */
 
-        await deleteUploadedImages(
-          newlyUploadedImages
-        );
+    await deleteUploadedImages(newlyUploadedImages);
 
-        throw error;
-      }
-    }
-  );
+    throw error;
+  }
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -1358,84 +854,46 @@ const updateArticle =
 |--------------------------------------------------------------------------
 */
 
-const deleteArticle =
-  asyncHandler(
-    async (
-      req,
-      res
-    ) => {
-      const article =
-        await Article.findById(
-          req.params.id
-        );
+const deleteArticle = asyncHandler(async (req, res) => {
+  const article = await Article.findById(req.params.id);
 
-      if (!article) {
-        throw new ApiError(
-          404,
-          "Article not found"
-        );
-      }
+  if (!article) {
+    throw new ApiError(404, "Article not found");
+  }
 
-      const imageKeys =
-        article.images
-          .map(
-            (image) =>
-              image.key
-          )
-          .filter(Boolean);
+  const imageKeys = article.images.map((image) => image.key).filter(Boolean);
 
-      /*
+  /*
       |--------------------------------------------------------------------------
       | Delete Article from MongoDB
       |--------------------------------------------------------------------------
       */
 
-      await article.deleteOne();
+  await article.deleteOne();
 
-      /*
+  /*
       |--------------------------------------------------------------------------
       | Delete Article Images from S3
       |--------------------------------------------------------------------------
       */
 
-      const deletionResults =
-        await Promise.allSettled(
-          imageKeys.map(
-            (key) =>
-              deleteFromS3(
-                key
-              )
-          )
-        );
-
-      deletionResults.forEach(
-        (
-          result,
-          index
-        ) => {
-          if (
-            result.status ===
-            "rejected"
-          ) {
-            console.error(
-              `Failed to delete S3 image: ${imageKeys[index]}`,
-              result.reason
-            );
-          }
-        }
-      );
-
-      return res
-        .status(200)
-        .json(
-          new ApiResponse(
-            200,
-            null,
-            "Article deleted successfully"
-          )
-        );
-    }
+  const deletionResults = await Promise.allSettled(
+    imageKeys.map((key) => deleteFromS3(key)),
   );
+
+  deletionResults.forEach((result, index) => {
+    if (result.status === "rejected") {
+      console.error(
+        `Failed to delete S3 image: ${imageKeys[index]}`,
+        result.reason,
+      );
+    }
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Article deleted successfully"));
+});
 
 /*
 |--------------------------------------------------------------------------
