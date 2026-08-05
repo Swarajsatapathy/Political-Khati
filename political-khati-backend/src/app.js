@@ -20,32 +20,46 @@ const app = express();
 */
 
 const normalizeOrigin = (origin) => {
-  return origin?.trim().replace(/\/+$/, "");
+  return origin
+    ?.trim()
+    .replace(/\/+$/, "");
 };
 
-const environmentOrigins = [
-  process.env.CLIENT_URL,
-  process.env.ADMIN_URL,
-  ...(process.env.CORS_ORIGINS
+const additionalOrigins =
+  process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",")
-    : []),
-];
+    : [];
 
 const allowedOrigins = new Set(
   [
     "http://localhost:3000",
     "http://localhost:3001",
-    ...environmentOrigins,
+
+    // Exact deployed admin URL
+    "https://political-khati-adminpage.vercel.app",
+
+    process.env.CLIENT_URL,
+    process.env.ADMIN_URL,
+
+    ...additionalOrigins,
   ]
     .filter(Boolean)
     .map(normalizeOrigin)
 );
 
+/*
+ * Check this output inside Render logs.
+ */
+console.log(
+  "✅ Allowed CORS origins:",
+  Array.from(allowedOrigins)
+);
+
 const corsOptions = {
   origin(origin, callback) {
     /*
-     * Allow requests without an Origin header,
-     * such as Postman, curl and Render health checks.
+     * Allow Postman, curl, Render health checks
+     * and server-to-server requests.
      */
     if (!origin) {
       return callback(null, true);
@@ -55,13 +69,24 @@ const corsOptions = {
       normalizeOrigin(origin);
 
     if (
-      allowedOrigins.has(normalizedOrigin)
+      allowedOrigins.has(
+        normalizedOrigin
+      )
     ) {
+      console.log(
+        `✅ CORS allowed: ${origin}`
+      );
+
       return callback(null, true);
     }
 
-    console.warn(
-      `CORS blocked origin: ${origin}`
+    console.error(
+      `❌ CORS blocked: ${origin}`
+    );
+
+    console.error(
+      "Allowed origins:",
+      Array.from(allowedOrigins)
     );
 
     return callback(
@@ -83,6 +108,7 @@ const corsOptions = {
   allowedHeaders: [
     "Content-Type",
     "Authorization",
+    "Accept",
   ],
 
   credentials: true,
@@ -96,6 +122,15 @@ const corsOptions = {
 |--------------------------------------------------------------------------
 */
 
+/*
+ * Explicitly handle every OPTIONS preflight request.
+ * Regex is used because this project uses Express 5.
+ */
+app.options(
+  /.*/,
+  cors(corsOptions)
+);
+
 app.use(cors(corsOptions));
 
 app.use(helmet());
@@ -104,7 +139,8 @@ app.use(compression());
 
 app.use(
   morgan(
-    process.env.NODE_ENV === "production"
+    process.env.NODE_ENV ===
+      "production"
       ? "combined"
       : "dev"
   )
@@ -137,14 +173,20 @@ app.get("/", (req, res) => {
   });
 });
 
-app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message:
-      "Political Khati backend is healthy",
-    timestamp: new Date().toISOString(),
-  });
-});
+app.get(
+  "/api/health",
+  (req, res) => {
+    res.status(200).json({
+      success: true,
+      message:
+        "Political Khati backend is healthy",
+      timestamp:
+        new Date().toISOString(),
+      allowedOrigins:
+        Array.from(allowedOrigins),
+    });
+  }
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -152,7 +194,10 @@ app.get("/api/health", (req, res) => {
 |--------------------------------------------------------------------------
 */
 
-app.use("/api/auth", authRoutes);
+app.use(
+  "/api/auth",
+  authRoutes
+);
 
 app.use(
   "/api/articles",
