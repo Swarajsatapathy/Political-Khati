@@ -4683,3 +4683,81 @@ h4,
     animation: none;
   }
 }
+
+/* =========================================================
+   SAME HEIGHT FOR WEB NEWS + VIDEO NEWS CARDS
+   ========================================================= */
+
+.homeShowcaseGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+  align-items: stretch;
+}
+
+.homeShowcaseColumn {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+/* Wrapper around each changing card */
+.homeCardAnimation {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  animation: homeCardEnter 340ms ease;
+}
+
+/* Both cards now fill the same available height */
+.homeShowcaseCard {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  flex-direction: column;
+
+  border: 1px solid var(--pk-border);
+  border-radius: 14px;
+  background: #ffffff;
+
+  box-shadow:
+    0 9px 26px
+    rgba(1, 32, 90, 0.09);
+
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+/* Card content fills remaining height */
+.homeShowcaseBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 18px 20px 20px;
+}
+
+/* Keep buttons aligned at bottom */
+.homeCardButton {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+
+  margin-top: auto;
+  padding: 0 15px;
+
+  border-radius: 7px;
+  background: var(--pk-red);
+  color: #ffffff;
+
+  font-size: 0.76rem;
+  font-weight: 800;
+
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}

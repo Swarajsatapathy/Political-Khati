@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
 import Link from "next/link";
-
 import { notFound } from "next/navigation";
 
 import { FaYoutube } from "react-icons/fa";
@@ -21,7 +20,11 @@ import Header from "../../../components/Header";
 import ShareButtons from "../../../components/ShareButtons";
 import SocialSidebar from "../../../components/SocialSidebar";
 
-import { getFlashArticles, getVideoBySlug, type Video } from "../../../lib/api";
+import {
+  getFlashArticles,
+  getVideoBySlug,
+  type Video,
+} from "../../../lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +51,10 @@ function createVideoDescription(description?: string) {
   return `${cleanDescription.slice(0, 157)}...`;
 }
 
+/* =========================================================
+   DATE & TIME - INDIA (IST)
+   ========================================================= */
+
 function formatVideoDate(value?: string | null) {
   if (!value) {
     return "";
@@ -60,13 +67,19 @@ function formatVideoDate(value?: string | null) {
   }
 
   return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
     day: "numeric",
     month: "long",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   }).format(date);
 }
+
+/* =========================================================
+   YOUTUBE VIDEO ID
+   ========================================================= */
 
 function extractYouTubeVideoId(video: Video) {
   if (video.youtubeVideoId) {
@@ -78,10 +91,10 @@ function extractYouTubeVideoId(video: Video) {
   }
 
   const patterns = [
-    /youtube\.com\/watch\?v=([^&]+)/,
-    /youtu\.be\/([^?&/]+)/,
-    /youtube\.com\/embed\/([^?&/]+)/,
-    /youtube\.com\/shorts\/([^?&/]+)/,
+    /youtube.com\/watch\?v=([^&]+)/,
+    /youtu.be\/([^?&/]+)/,
+    /youtube.com\/embed\/([^?&/]+)/,
+    /youtube.com\/shorts\/([^?&/]+)/,
   ];
 
   for (const pattern of patterns) {
@@ -106,6 +119,10 @@ function createDescriptionParagraphs(description?: string) {
     .filter(Boolean);
 }
 
+/* =========================================================
+   METADATA
+   ========================================================= */
+
 export async function generateMetadata({
   params,
 }: VideoDetailsPageProps): Promise<Metadata> {
@@ -116,15 +133,15 @@ export async function generateMetadata({
   if (!video) {
     return {
       title: "Video Not Found",
-      description: "The requested Political Khati video could not be found.",
+      description:
+        "The requested Political Khati video could not be found.",
     };
   }
 
   const description = createVideoDescription(video.description);
 
-  const previewImage = video.thumbnail || "/political-khati-logo.png";
-
-  
+  const previewImage =
+    video.thumbnail || "/political-khati-logo.png";
 
   return {
     title: video.title,
@@ -168,6 +185,10 @@ export async function generateMetadata({
   };
 }
 
+/* =========================================================
+   VIDEO DETAILS PAGE
+   ========================================================= */
+
 export default async function VideoDetailsPage({
   params,
 }: VideoDetailsPageProps) {
@@ -182,15 +203,19 @@ export default async function VideoDetailsPage({
     notFound();
   }
 
-  const youtubeVideoId = extractYouTubeVideoId(video);
+  const youtubeVideoId =
+    extractYouTubeVideoId(video);
 
   const embedUrl = youtubeVideoId
     ? `https://www.youtube.com/embed/${youtubeVideoId}?rel=0`
     : "";
 
-  const videoDate = formatVideoDate(video.publishedAt || video.createdAt);
+  const videoDate = formatVideoDate(
+    video.publishedAt || video.createdAt
+  );
 
-  const descriptionParagraphs = createDescriptionParagraphs(video.description);
+  const descriptionParagraphs =
+    createDescriptionParagraphs(video.description);
 
   return (
     <>
@@ -201,9 +226,16 @@ export default async function VideoDetailsPage({
       <SocialSidebar />
 
       <main className="videoDetailsPage">
+        {/* =====================================================
+            VIDEO HERO
+            ===================================================== */}
+
         <section className="videoDetailsHero">
           <div className="videoDetailsContainer">
-            <Link href="/video-news" className="videoBackLink">
+            <Link
+              href="/video-news"
+              className="videoBackLink"
+            >
               <FaArrowLeft />
 
               <span>Back to Video News</span>
@@ -216,7 +248,9 @@ export default async function VideoDetailsPage({
               </span>
 
               {video.isFlash && (
-                <span className="videoFlashLabel">Flash News</span>
+                <span className="videoFlashLabel">
+                  Flash News
+                </span>
               )}
             </div>
 
@@ -252,8 +286,14 @@ export default async function VideoDetailsPage({
           </div>
         </section>
 
+        {/* =====================================================
+            VIDEO CONTENT
+            ===================================================== */}
+
         <section className="videoDetailsContentSection">
           <article className="videoDetailsContainer videoDetailsCard">
+            {/* Video Player */}
+
             <div className="videoPlayerWrapper">
               {embedUrl ? (
                 <iframe
@@ -270,14 +310,21 @@ export default async function VideoDetailsPage({
 
                   <h2>Video unavailable</h2>
 
-                  <p>The YouTube video link is missing or invalid.</p>
+                  <p>
+                    The YouTube video link is
+                    missing or invalid.
+                  </p>
                 </div>
               )}
             </div>
 
+            {/* Video Body */}
+
             <div className="videoDetailsBody">
               <div className="videoTopActions">
-                <ShareButtons title={video.title} />
+                <ShareButtons
+                  title={video.title}
+                />
 
                 {video.youtubeUrl && (
                   <a
@@ -292,48 +339,70 @@ export default async function VideoDetailsPage({
                 )}
               </div>
 
+              {/* Description */}
+
               <section className="videoDescriptionSection">
                 <h2>Video Description</h2>
 
-                {descriptionParagraphs.length > 0 ? (
+                {descriptionParagraphs.length >
+                0 ? (
                   <div className="videoDescriptionContent">
-                    {descriptionParagraphs.map((paragraph, index) => (
-                      <p key={index}>{paragraph}</p>
-                    ))}
+                    {descriptionParagraphs.map(
+                      (paragraph, index) => (
+                        <p key={index}>
+                          {paragraph}
+                        </p>
+                      )
+                    )}
                   </div>
                 ) : (
                   <div className="videoNoDescription">
                     <FaPlay />
 
-                    <p>The video description will be updated shortly.</p>
+                    <p>
+                      The video description will
+                      be updated shortly.
+                    </p>
                   </div>
                 )}
               </section>
 
-              {video.tags && video.tags.length > 0 && (
-                <div className="videoDetailTags">
-                  <span>Tags:</span>
+              {/* Tags */}
 
-                  <div>
-                    {video.tags.map((tag) => (
-                      <Link
-                        href={`/video-news?search=${encodeURIComponent(tag)}`}
-                        key={tag}
-                      >
-                        {tag}
-                      </Link>
-                    ))}
+              {video.tags &&
+                video.tags.length > 0 && (
+                  <div className="videoDetailTags">
+                    <span>Tags:</span>
+
+                    <div>
+                      {video.tags.map((tag) => (
+                        <Link
+                          href={`/video-news?search=${encodeURIComponent(
+                            tag
+                          )}`}
+                          key={tag}
+                        >
+                          {tag}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
+              {/* Bottom Actions */}
 
               <div className="videoBottomActions">
-                <Link href="/video-news" className="videoAllNewsButton">
+                <Link
+                  href="/video-news"
+                  className="videoAllNewsButton"
+                >
                   <FaArrowLeft />
                   View All Video News
                 </Link>
 
-                <ShareButtons title={video.title} />
+                <ShareButtons
+                  title={video.title}
+                />
               </div>
             </div>
           </article>
