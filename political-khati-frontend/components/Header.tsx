@@ -1,39 +1,48 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import MobileNavigation from "./MobileNavigation";
 
 export default function Header() {
   return (
     <header className="siteHeader">
-      {/* Top information strip */}
-      <div className="headerTopStrip">
-        <div className="siteContainer headerTopStripInner">
-          <p>POLITICAL KHATI NEWS PLATFORM</p>
+      {/* Scrolling Top Bar */}
+      <div className="headerTopBar">
+        <div className="headerTicker">
+          <div className="headerTickerTrack">
+            <div className="headerTickerGroup">
+              <span>POLITICAL KHATI - UNFILTERED POLITICS</span>
+              <span>POLITICAL KHATI - UNFILTERED POLITICS</span>
+              <span>POLITICAL KHATI - UNFILTERED POLITICS</span>
+              <span>POLITICAL KHATI - UNFILTERED POLITICS</span>
+            </div>
 
-          <p>UNFILTERED POLITICS</p>
+            <div className="headerTickerGroup" aria-hidden="true">
+              <span>POLITICAL KHATI - UNFILTERED POLITICS</span>
+              <span>POLITICAL KHATI - UNFILTERED POLITICS</span>
+              <span>POLITICAL KHATI - UNFILTERED POLITICS</span>
+              <span>POLITICAL KHATI - UNFILTERED POLITICS</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Logo section */}
-      <div className="headerLogoSection">
-        <Link
-          href="/"
-          className="headerLogoLink"
-          aria-label="Political Khati homepage"
-        >
-          <Image
-            src="/political-khati-logo.png"
-            alt="Political Khati"
-            width={170}
-            height={170}
-            className="headerLogo"
-            priority
-          />
-        </Link>
+      {/* Banner */}
+      <div className="headerMainSection">
+        <div className="siteContainer headerBannerContainer">
+          <div className="headerBanner">
+            <Image
+              src="/political-khati-banner.jpg"
+              alt="Political Khati"
+              fill
+              sizes="(max-width: 700px) 100vw, 970px"
+              className="headerBannerImage"
+              priority
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Desktop and mobile navigation */}
+      {/* Navigation */}
       <MobileNavigation />
     </header>
   );

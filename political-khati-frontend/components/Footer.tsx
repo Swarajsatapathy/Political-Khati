@@ -12,10 +12,10 @@ import {
 import { FaXTwitter } from "react-icons/fa6";
 
 const CONTACT_DETAILS = {
-  email: "contact@politicalkhati.in",
-  whatsappNumber: "919876543210",
-  whatsappDisplay: "+91 98765 43210",
-  location: "Odisha, India",
+  email: "srishtinews@gmail.com",
+  whatsappNumber: "919668421545",
+  whatsappDisplay: "+91 96684 21545",
+  location: "Bhubaneswar, Odisha, India",
 };
 
 const whatsappMessage = encodeURIComponent(
@@ -23,10 +23,10 @@ const whatsappMessage = encodeURIComponent(
 );
 
 const SOCIAL_LINKS = {
-  facebook: "#",
+  facebook: "https://www.facebook.com/share/1DHgzfWWFg/",
   x: "#",
   whatsapp: `https://wa.me/${CONTACT_DETAILS.whatsappNumber}?text=${whatsappMessage}`,
-  youtube: "#",
+  youtube: "https://www.youtube.com/@politicalkhati",
 };
 
 export default function Footer() {

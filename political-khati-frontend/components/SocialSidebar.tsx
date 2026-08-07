@@ -7,10 +7,10 @@ import {
 import { FaXTwitter } from "react-icons/fa6";
 
 const SOCIAL_LINKS = {
-  facebook: "#",
+  facebook: "https://www.facebook.com/share/1DHgzfWWFg/",
   x: "#",
-  whatsapp: "#",
-  youtube: "#",
+  whatsapp: "https://wa.me/919668421545?text=Hello%20Political%20Khati,%20I%20want%20to%20contact%20the%20news%20desk.",
+  youtube: "https://www.youtube.com/@politicalkhati",
 };
 
 export default function SocialSidebar() {

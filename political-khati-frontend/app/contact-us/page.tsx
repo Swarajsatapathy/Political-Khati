@@ -35,17 +35,17 @@ export const metadata: Metadata = {
 */
 
 const CONTACT_DETAILS = {
-  mobileNumber: "Update official mobile number",
-  mobileLink: "",
+  mobileNumber: "+91 96684 21545",
+  mobileLink: "919668421545",
 
-  emailAddress: "Update official email address",
-  emailLink: "",
+  emailAddress: "srishtinews@gmail.com",
+  emailLink: "srishtinews@gmail.com",
 };
 
 const SOCIAL_LINKS = {
-  facebook: "#",
-  youtube: "#",
-  whatsapp: "#",
+  facebook: "https://www.facebook.com/share/1DHgzfWWFg/",
+  youtube: "https://www.youtube.com/@politicalkhati",
+  whatsapp: "https://wa.me/919668421545?text=Hello%20Political%20Khati,%20I%20want%20to%20contact%20the%20news%20desk.",
   x: "#",
 };
 
