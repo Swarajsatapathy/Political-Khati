@@ -4,6 +4,10 @@ const API_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 ).replace(/\/+$/, "");
 
+/* =========================================================
+   TYPES
+   ========================================================= */
+
 export type ArticleImage = {
   url: string;
   key: string;
@@ -58,6 +62,18 @@ export type FlashArticle = {
   createdAt?: string;
 };
 
+export type FlashVideo = {
+  _id: string;
+  title: string;
+  slug: string;
+  district?: string;
+  reporter?: string;
+  isPublished: boolean;
+  isFlash: boolean;
+  publishedAt?: string | null;
+  createdAt?: string;
+};
+
 export type Pagination = {
   total: number;
   page: number;
@@ -94,7 +110,14 @@ type VideoListData = {
   pagination?: Pagination;
 };
 
-const createEmptyPagination = (page: number, limit: number): Pagination => {
+/* =========================================================
+   EMPTY PAGINATION
+   ========================================================= */
+
+const createEmptyPagination = (
+  page: number,
+  limit: number
+): Pagination => {
   return {
     total: 0,
     page,
@@ -105,37 +128,52 @@ const createEmptyPagination = (page: number, limit: number): Pagination => {
   };
 };
 
-async function fetchFromApi<T>(endpoint: string): Promise<T | null> {
+/* =========================================================
+   API FETCH
+   ========================================================= */
+
+async function fetchFromApi<T>(
+  endpoint: string
+): Promise<T | null> {
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      cache: "no-store",
-    });
+    const response = await fetch(
+      `${API_URL}${endpoint}`,
+      {
+        cache: "no-store",
+      }
+    );
 
     if (!response.ok) {
-      console.error(`API request failed: ${response.status} ${endpoint}`);
+      console.error(
+        `API request failed: ${response.status} ${endpoint}`
+      );
 
       return null;
     }
 
-    const result = (await response.json()) as ApiResponse<T>;
+    const result =
+      (await response.json()) as ApiResponse<T>;
 
     return result.data ?? null;
   } catch (error) {
     unstable_rethrow(error);
 
-    console.error(`Unable to fetch ${endpoint}:`, error);
+    console.error(
+      `Unable to fetch ${endpoint}:`,
+      error
+    );
 
     return null;
   }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Flash News
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   FLASH ARTICLES
+   ========================================================= */
 
-export async function getFlashArticles(): Promise<FlashArticle[]> {
+export async function getFlashArticles(): Promise<
+  FlashArticle[]
+> {
   const data = await fetchFromApi<
     | FlashArticle[]
     | {
@@ -150,53 +188,74 @@ export async function getFlashArticles(): Promise<FlashArticle[]> {
   return data?.articles || [];
 }
 
-/*
-|--------------------------------------------------------------------------
-| Homepage Articles
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   FLASH VIDEOS
+   ========================================================= */
 
-export async function getPublishedArticles(limit = 10): Promise<Article[]> {
-  const params = new URLSearchParams({
-    page: "1",
-    limit: String(limit),
-    sortBy: "publishedAt",
-    order: "desc",
-  });
+export async function getFlashVideos(): Promise<
+  FlashVideo[]
+> {
+  const data = await fetchFromApi<
+    | FlashVideo[]
+    | {
+        videos?: FlashVideo[];
+      }
+  >("/api/videos/flash");
 
-  const data = await fetchFromApi<ArticleListData>(
-    `/api/articles?${params.toString()}`,
-  );
-
-  return data?.articles || [];
-}
-
-/*
-|--------------------------------------------------------------------------
-| Homepage Videos
-|--------------------------------------------------------------------------
-*/
-
-export async function getPublishedVideos(limit = 10): Promise<Video[]> {
-  const params = new URLSearchParams({
-    page: "1",
-    limit: String(limit),
-    sortBy: "publishedAt",
-    order: "desc",
-  });
-
-  const data = await fetchFromApi<VideoListData>(
-    `/api/videos?${params.toString()}`,
-  );
+  if (Array.isArray(data)) {
+    return data;
+  }
 
   return data?.videos || [];
 }
 
-/*
-|--------------------------------------------------------------------------
-| Paginated Web News
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   HOMEPAGE ARTICLES
+   ========================================================= */
+
+export async function getPublishedArticles(
+  limit = 10
+): Promise<Article[]> {
+  const params = new URLSearchParams({
+    page: "1",
+    limit: String(limit),
+    sortBy: "publishedAt",
+    order: "desc",
+  });
+
+  const data =
+    await fetchFromApi<ArticleListData>(
+      `/api/articles?${params.toString()}`
+    );
+
+  return data?.articles || [];
+}
+
+/* =========================================================
+   HOMEPAGE VIDEOS
+   ========================================================= */
+
+export async function getPublishedVideos(
+  limit = 10
+): Promise<Video[]> {
+  const params = new URLSearchParams({
+    page: "1",
+    limit: String(limit),
+    sortBy: "publishedAt",
+    order: "desc",
+  });
+
+  const data =
+    await fetchFromApi<VideoListData>(
+      `/api/videos?${params.toString()}`
+    );
+
+  return data?.videos || [];
+}
+
+/* =========================================================
+   PAGINATED WEB NEWS
+   ========================================================= */
 
 export async function getPublishedArticlePage({
   page = 1,
@@ -208,7 +267,11 @@ export async function getPublishedArticlePage({
   search?: string;
 }): Promise<ArticlePageData> {
   const safePage = Math.max(1, page);
-  const safeLimit = Math.max(1, Math.min(limit, 100));
+
+  const safeLimit = Math.max(
+    1,
+    Math.min(limit, 100)
+  );
 
   const params = new URLSearchParams({
     page: String(safePage),
@@ -221,23 +284,26 @@ export async function getPublishedArticlePage({
     params.set("search", search.trim());
   }
 
-  const data = await fetchFromApi<ArticlePageData>(
-    `/api/articles?${params.toString()}`,
-  );
+  const data =
+    await fetchFromApi<ArticleListData>(
+      `/api/articles?${params.toString()}`
+    );
 
-  return (
-    data || {
-      articles: [],
-      pagination: createEmptyPagination(safePage, safeLimit),
-    }
-  );
+  return {
+    articles: data?.articles || [],
+
+    pagination:
+      data?.pagination ||
+      createEmptyPagination(
+        safePage,
+        safeLimit
+      ),
+  };
 }
 
-/*
-|--------------------------------------------------------------------------
-| Paginated Video News
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   PAGINATED VIDEO NEWS
+   ========================================================= */
 
 export async function getPublishedVideoPage({
   page = 1,
@@ -249,7 +315,11 @@ export async function getPublishedVideoPage({
   search?: string;
 }): Promise<VideoPageData> {
   const safePage = Math.max(1, page);
-  const safeLimit = Math.max(1, Math.min(limit, 100));
+
+  const safeLimit = Math.max(
+    1,
+    Math.min(limit, 100)
+  );
 
   const params = new URLSearchParams({
     page: String(safePage),
@@ -262,46 +332,57 @@ export async function getPublishedVideoPage({
     params.set("search", search.trim());
   }
 
-  const data = await fetchFromApi<VideoPageData>(
-    `/api/videos?${params.toString()}`,
-  );
+  const data =
+    await fetchFromApi<VideoListData>(
+      `/api/videos?${params.toString()}`
+    );
 
-  return (
-    data || {
-      videos: [],
-      pagination: createEmptyPagination(safePage, safeLimit),
-    }
-  );
+  return {
+    videos: data?.videos || [],
+
+    pagination:
+      data?.pagination ||
+      createEmptyPagination(
+        safePage,
+        safeLimit
+      ),
+  };
 }
 
-/*
-|--------------------------------------------------------------------------
-| Single Article by Slug
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   SINGLE ARTICLE BY SLUG
+   ========================================================= */
 
-export async function getArticleBySlug(slug: string): Promise<Article | null> {
+export async function getArticleBySlug(
+  slug: string
+): Promise<Article | null> {
   if (!slug.trim()) {
     return null;
   }
 
-  const safeSlug = encodeURIComponent(slug.trim());
+  const safeSlug =
+    encodeURIComponent(slug.trim());
 
-  return fetchFromApi<Article>(`/api/articles/${safeSlug}`);
+  return fetchFromApi<Article>(
+    `/api/articles/${safeSlug}`
+  );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Single Video by Slug
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   SINGLE VIDEO BY SLUG
+   ========================================================= */
 
-export async function getVideoBySlug(slug: string): Promise<Video | null> {
+export async function getVideoBySlug(
+  slug: string
+): Promise<Video | null> {
   if (!slug.trim()) {
     return null;
   }
 
-  const safeSlug = encodeURIComponent(slug.trim());
+  const safeSlug =
+    encodeURIComponent(slug.trim());
 
-  return fetchFromApi<Video>(`/api/videos/${safeSlug}`);
+  return fetchFromApi<Video>(
+    `/api/videos/${safeSlug}`
+  );
 }

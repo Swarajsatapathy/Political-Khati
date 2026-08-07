@@ -1,14 +1,53 @@
 import Link from "next/link";
 
-import type { FlashArticle } from "../lib/api";
+import type {
+  FlashArticle,
+  Video,
+} from "../lib/api";
 
 type FlashNewsBarProps = {
   articles: FlashArticle[];
+  videos?: Video[];
+};
+
+type FlashItem = {
+  _id: string;
+  title: string;
+  slug: string;
+  district?: string;
+  type: "article" | "video";
 };
 
 export default function FlashNewsBar({
   articles,
+  videos = [],
 }: FlashNewsBarProps) {
+  const flashItems: FlashItem[] = [
+    ...articles.map((article) => ({
+      _id: article._id,
+      title: article.title,
+      slug: article.slug,
+      district: article.district,
+      type: "article" as const,
+    })),
+
+    ...videos.map((video) => ({
+      _id: video._id,
+      title: video.title,
+      slug: video.slug,
+      district: video.district,
+      type: "video" as const,
+    })),
+  ];
+
+  function getFlashLink(item: FlashItem) {
+    if (item.type === "video") {
+      return `/video-news/${item.slug}`;
+    }
+
+    return `/web-news/${item.slug}`;
+  }
+
   return (
     <section
       className="flashNewsBar"
@@ -24,44 +63,48 @@ export default function FlashNewsBar({
         </div>
 
         <div className="flashTickerViewport">
-          {articles.length > 0 ? (
+          {flashItems.length > 0 ? (
             <div className="flashTickerTrack">
-              {/* First set */}
+              {/* First Set */}
               <div className="flashTickerGroup">
-                {articles.map((article) => (
+                {flashItems.map((item) => (
                   <Link
-                    href={`/web-news/${article.slug}`}
+                    href={getFlashLink(item)}
                     className="flashTickerItem"
-                    key={article._id}
+                    key={`${item.type}-${item._id}`}
                   >
-                    <span>{article.title}</span>
+                    <span>
+                      {item.title}
+                    </span>
 
-                    {article.district && (
+                    {item.district && (
                       <small>
-                        {article.district}
+                        {item.district}
                       </small>
                     )}
                   </Link>
                 ))}
               </div>
 
-              {/* Duplicate set for continuous scrolling */}
+              {/* Duplicate Set */}
               <div
                 className="flashTickerGroup"
                 aria-hidden="true"
               >
-                {articles.map((article) => (
+                {flashItems.map((item) => (
                   <Link
-                    href={`/web-news/${article.slug}`}
+                    href={getFlashLink(item)}
                     className="flashTickerItem"
-                    key={`duplicate-${article._id}`}
+                    key={`duplicate-${item.type}-${item._id}`}
                     tabIndex={-1}
                   >
-                    <span>{article.title}</span>
+                    <span>
+                      {item.title}
+                    </span>
 
-                    {article.district && (
+                    {item.district && (
                       <small>
-                        {article.district}
+                        {item.district}
                       </small>
                     )}
                   </Link>

@@ -8,13 +8,20 @@ import SocialSidebar from "../components/SocialSidebar";
 
 import {
   getFlashArticles,
+  getFlashVideos,
   getPublishedArticles,
   getPublishedVideos,
 } from "../lib/api";
 
 export default async function HomePage() {
-  const [flashArticles, articles, videos] = await Promise.all([
+  const [
+    flashArticles,
+    flashVideos,
+    articles,
+    videos,
+  ] = await Promise.all([
     getFlashArticles(),
+    getFlashVideos(),
     getPublishedArticles(10),
     getPublishedVideos(10),
   ]);
@@ -23,7 +30,10 @@ export default async function HomePage() {
     <>
       <Header />
 
-      <FlashNewsBar articles={flashArticles} />
+      <FlashNewsBar
+        articles={flashArticles}
+        videos={flashVideos}
+      />
 
       <SocialSidebar />
 

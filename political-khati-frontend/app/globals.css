@@ -4761,3 +4761,46 @@ h4,
     background 160ms ease,
     transform 160ms ease;
 }
+
+/* =========================================================
+   MOBILE HOMEPAGE - STACK WEB NEWS & VIDEO NEWS
+   ========================================================= */
+
+@media (max-width: 700px) {
+  .homeShowcaseGrid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+    width: 100%;
+  }
+
+  .homeShowcaseColumn {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  .homeCardAnimation {
+    display: flex;
+    width: 100%;
+  }
+
+  .homeShowcaseCard {
+    width: 100%;
+    height: auto;
+  }
+
+  .homeShowcaseImageWrapper {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+  }
+
+  .homeShowcaseBody {
+    width: 100%;
+  }
+
+  .homeSectionHeading {
+    width: 100%;
+  }
+}
