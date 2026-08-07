@@ -2,12 +2,12 @@ import Link from "next/link";
 
 import type {
   FlashArticle,
-  Video,
+  FlashVideo,
 } from "../lib/api";
 
 type FlashNewsBarProps = {
   articles: FlashArticle[];
-  videos?: Video[];
+  videos?: FlashVideo[];
 };
 
 type FlashItem = {
