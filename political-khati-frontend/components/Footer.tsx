@@ -65,6 +65,7 @@ export default function Footer() {
             <Link href="/">Home</Link>
             <Link href="/about-us">About Us</Link>
             <Link href="/web-news">Web News</Link>
+            <Link href="/reporters">Reporters</Link>
             <Link href="/video-news">Video News</Link>
             <Link href="/contact-us">Contact Us</Link>
           </nav>

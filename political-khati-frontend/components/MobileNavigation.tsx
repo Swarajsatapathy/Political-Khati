@@ -23,6 +23,10 @@ const NAVIGATION_LINKS = [
     href: "/web-news",
   },
   {
+    label: "Reporters",
+    href: "/reporters",
+  },
+  {
     label: "Video News",
     href: "/video-news",
   },

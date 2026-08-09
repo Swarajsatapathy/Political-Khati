@@ -11,6 +11,7 @@ import {
   getFlashVideos,
   getPublishedArticles,
   getPublishedVideos,
+  getReporters,
 } from "../lib/api";
 
 export default async function HomePage() {
@@ -19,11 +20,13 @@ export default async function HomePage() {
     flashVideos,
     articles,
     videos,
+    reporters,
   ] = await Promise.all([
     getFlashArticles(),
     getFlashVideos(),
     getPublishedArticles(10),
     getPublishedVideos(10),
+    getReporters(),
   ]);
 
   return (
@@ -41,6 +44,7 @@ export default async function HomePage() {
         <HomeNewsShowcase
           articles={articles}
           videos={videos}
+          reporters={reporters}
         />
       </main>
 

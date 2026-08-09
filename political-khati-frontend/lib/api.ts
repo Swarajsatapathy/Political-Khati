@@ -1,12 +1,13 @@
 import { unstable_rethrow } from "next/navigation";
 
 const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000"
 ).replace(/\/+$/, "");
 
 /* =========================================================
    TYPES
-   ========================================================= */
+========================================================= */
 
 export type ArticleImage = {
   url: string;
@@ -46,6 +47,22 @@ export type Video = {
   isFlash: boolean;
   views?: number;
   publishedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ReporterPhoto = {
+  url?: string;
+  key?: string;
+};
+
+export type Reporter = {
+  _id: string;
+  serialNumber: number;
+  name: string;
+  designation: string;
+  district: string;
+  photo?: ReporterPhoto;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -112,7 +129,7 @@ type VideoListData = {
 
 /* =========================================================
    EMPTY PAGINATION
-   ========================================================= */
+========================================================= */
 
 const createEmptyPagination = (
   page: number,
@@ -130,7 +147,7 @@ const createEmptyPagination = (
 
 /* =========================================================
    API FETCH
-   ========================================================= */
+========================================================= */
 
 async function fetchFromApi<T>(
   endpoint: string
@@ -169,7 +186,7 @@ async function fetchFromApi<T>(
 
 /* =========================================================
    FLASH ARTICLES
-   ========================================================= */
+========================================================= */
 
 export async function getFlashArticles(): Promise<
   FlashArticle[]
@@ -190,7 +207,7 @@ export async function getFlashArticles(): Promise<
 
 /* =========================================================
    FLASH VIDEOS
-   ========================================================= */
+========================================================= */
 
 export async function getFlashVideos(): Promise<
   FlashVideo[]
@@ -211,7 +228,7 @@ export async function getFlashVideos(): Promise<
 
 /* =========================================================
    HOMEPAGE ARTICLES
-   ========================================================= */
+========================================================= */
 
 export async function getPublishedArticles(
   limit = 10
@@ -233,7 +250,7 @@ export async function getPublishedArticles(
 
 /* =========================================================
    HOMEPAGE VIDEOS
-   ========================================================= */
+========================================================= */
 
 export async function getPublishedVideos(
   limit = 10
@@ -254,8 +271,59 @@ export async function getPublishedVideos(
 }
 
 /* =========================================================
+   REPORTERS
+========================================================= */
+
+export async function getReporters(): Promise<
+  Reporter[]
+> {
+  const data = await fetchFromApi<
+    | Reporter[]
+    | {
+        reporters?: Reporter[];
+      }
+  >("/api/reporters");
+
+  if (Array.isArray(data)) {
+    return data.sort(
+      (a, b) =>
+        Number(a.serialNumber || 999999) -
+        Number(b.serialNumber || 999999)
+    );
+  }
+
+  const reporters =
+    data?.reporters || [];
+
+  return reporters.sort(
+    (a, b) =>
+      Number(a.serialNumber || 999999) -
+      Number(b.serialNumber || 999999)
+  );
+}
+
+/* =========================================================
+   SINGLE REPORTER BY ID
+========================================================= */
+
+export async function getReporterById(
+  id: string
+): Promise<Reporter | null> {
+  if (!id.trim()) {
+    return null;
+  }
+
+  const safeId =
+    encodeURIComponent(id.trim());
+
+  return fetchFromApi<Reporter>(
+    `/api/reporters/${safeId}`
+  );
+}
+
+/* =========================================================
    PAGINATED WEB NEWS
-   ========================================================= */
+========================================================= */
 
 export async function getPublishedArticlePage({
   page = 1,
@@ -281,7 +349,10 @@ export async function getPublishedArticlePage({
   });
 
   if (search.trim()) {
-    params.set("search", search.trim());
+    params.set(
+      "search",
+      search.trim()
+    );
   }
 
   const data =
@@ -290,7 +361,8 @@ export async function getPublishedArticlePage({
     );
 
   return {
-    articles: data?.articles || [],
+    articles:
+      data?.articles || [],
 
     pagination:
       data?.pagination ||
@@ -303,7 +375,7 @@ export async function getPublishedArticlePage({
 
 /* =========================================================
    PAGINATED VIDEO NEWS
-   ========================================================= */
+========================================================= */
 
 export async function getPublishedVideoPage({
   page = 1,
@@ -329,7 +401,10 @@ export async function getPublishedVideoPage({
   });
 
   if (search.trim()) {
-    params.set("search", search.trim());
+    params.set(
+      "search",
+      search.trim()
+    );
   }
 
   const data =
@@ -338,7 +413,8 @@ export async function getPublishedVideoPage({
     );
 
   return {
-    videos: data?.videos || [],
+    videos:
+      data?.videos || [],
 
     pagination:
       data?.pagination ||
@@ -351,7 +427,7 @@ export async function getPublishedVideoPage({
 
 /* =========================================================
    SINGLE ARTICLE BY SLUG
-   ========================================================= */
+========================================================= */
 
 export async function getArticleBySlug(
   slug: string
@@ -361,7 +437,9 @@ export async function getArticleBySlug(
   }
 
   const safeSlug =
-    encodeURIComponent(slug.trim());
+    encodeURIComponent(
+      slug.trim()
+    );
 
   return fetchFromApi<Article>(
     `/api/articles/${safeSlug}`
@@ -370,7 +448,7 @@ export async function getArticleBySlug(
 
 /* =========================================================
    SINGLE VIDEO BY SLUG
-   ========================================================= */
+========================================================= */
 
 export async function getVideoBySlug(
   slug: string
@@ -380,7 +458,9 @@ export async function getVideoBySlug(
   }
 
   const safeSlug =
-    encodeURIComponent(slug.trim());
+    encodeURIComponent(
+      slug.trim()
+    );
 
   return fetchFromApi<Video>(
     `/api/videos/${safeSlug}`
