@@ -10,6 +10,7 @@ import authRoutes from "./routes/authRoutes.js";
 import articleRoutes from "./routes/articleRoutes.js";
 import videoRoutes from "./routes/videoRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import reporterRoutes from "./routes/reporterRoutes.js";
 
 const app = express();
 
@@ -212,6 +213,11 @@ app.use(
 app.use(
   "/api/dashboard",
   dashboardRoutes
+);
+
+app.use(
+  "/api/reporters",
+  reporterRoutes
 );
 
 /*
