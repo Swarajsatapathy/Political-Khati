@@ -1259,7 +1259,11 @@ export default function ArticlesSection() {
               {articles.map(
                 (article) => (
                   <div
-                    className="newsListItem"
+                    className={`newsListItem ${
+                      editingId === article._id
+                        ? "isEditing"
+                        : ""
+                    }`}
                     key={article._id}
                   >
                     {article.images?.[0]
@@ -1319,6 +1323,13 @@ export default function ArticlesSection() {
                             Flash
                           </span>
                         )}
+
+                        {editingId ===
+                          article._id && (
+                          <span className="statusBadge editing">
+                            Editing Now
+                          </span>
+                        )}
                       </div>
 
                       <div className="newsActions">
@@ -1334,11 +1345,27 @@ export default function ArticlesSection() {
                             editingLoadingId ===
                             article._id
                           }
+                          title="Edit article"
                         >
-                          {editingLoadingId ===
-                          article._id
-                            ? "Loading..."
-                            : "Edit"}
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                          <span>
+                            {editingLoadingId ===
+                            article._id
+                              ? "Loading..."
+                              : "Edit"}
+                          </span>
                         </button>
 
                         <button
@@ -1353,11 +1380,27 @@ export default function ArticlesSection() {
                             deletingId ===
                             article._id
                           }
+                          title="Delete article"
                         >
-                          {deletingId ===
-                          article._id
-                            ? "Deleting..."
-                            : "Delete"}
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                          <span>
+                            {deletingId ===
+                            article._id
+                              ? "Deleting..."
+                              : "Delete"}
+                          </span>
                         </button>
                       </div>
                     </div>
