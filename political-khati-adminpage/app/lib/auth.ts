@@ -100,7 +100,10 @@ export function useInactivityTimeout({
   enabled = true,
 }: UseInactivityTimeoutOptions) {
   const onTimeoutRef = useRef(onTimeout);
-  onTimeoutRef.current = onTimeout;
+
+  useEffect(() => {
+    onTimeoutRef.current = onTimeout;
+  }, [onTimeout]);
 
   useEffect(() => {
     if (!enabled || typeof window === "undefined") return;
@@ -167,4 +170,3 @@ export function useInactivityTimeout({
     };
   }, [enabled]);
 }
-

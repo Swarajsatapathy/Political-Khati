@@ -14,24 +14,24 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    const reason = params.get("reason");
+    if (reason === "inactivity") {
+      return "You were logged out due to 15 minutes of inactivity. Please sign in again.";
+    }
+    if (reason === "expired") {
+      return "Your session has expired. Please sign in again.";
+    }
+    return "";
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     // Clear any previous session so login is always required when visiting this page
     clearAdminSession();
-
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const reason = params.get("reason");
-      if (reason === "inactivity") {
-        setError(
-          "You were logged out due to 15 minutes of inactivity. Please sign in again."
-        );
-      } else if (reason === "expired") {
-        setError("Your session has expired. Please sign in again.");
-      }
-    }
   }, []);
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
