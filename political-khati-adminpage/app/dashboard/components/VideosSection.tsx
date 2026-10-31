@@ -11,6 +11,11 @@ import {
 } from "react";
 
 import DISTRICTS from "./districts";
+import {
+  clearAdminSession as clearAuthSession,
+  getAdminToken,
+  recordActivity,
+} from "../../lib/auth";
 
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL ||
@@ -205,13 +210,7 @@ export default function VideosSection() {
 
   const clearAdminSession =
     useCallback(() => {
-      localStorage.removeItem(
-        "politicalKhatiAdminToken"
-      );
-
-      localStorage.removeItem(
-        "politicalKhatiAdminUsername"
-      );
+      clearAuthSession();
 
       router.replace("/login");
     }, [router]);
@@ -221,10 +220,11 @@ export default function VideosSection() {
       url: string,
       options: RequestInit = {}
     ) => {
-      const token =
-        localStorage.getItem(
-          "politicalKhatiAdminToken"
-        );
+      const token = getAdminToken();
+
+      if (token) {
+        recordActivity();
+      }
 
       if (!token) {
         clearAdminSession();

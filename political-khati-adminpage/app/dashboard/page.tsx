@@ -7,6 +7,14 @@ import { useRouter } from "next/navigation";
 import ArticlesSection from "./components/ArticlesSection";
 import VideosSection from "./components/VideosSection";
 import ReportersSection from "./components/ReportersSection";
+import {
+  clearAdminSession,
+  getAdminToken,
+  getAdminUsername,
+  isSessionTimedOut,
+  recordActivity,
+  useInactivityTimeout,
+} from "../lib/auth";
 
 type DashboardTab =
   | "articles"
@@ -34,19 +42,31 @@ export default function DashboardPage() {
 
   /*
   |--------------------------------------------------------------------------
+  | Inactivity Timeout (15 minutes)
+  |--------------------------------------------------------------------------
+  */
+  useInactivityTimeout({
+    onTimeout: () => {
+      router.replace("/login?reason=inactivity");
+    },
+    enabled: !isCheckingAuth,
+  });
+
+  /*
+  |--------------------------------------------------------------------------
   | Verify Admin Login
   |--------------------------------------------------------------------------
   */
 
   useEffect(() => {
     const verifyLogin = async () => {
-      const token =
-        localStorage.getItem(
-          "politicalKhatiAdminToken"
-        );
+      const token = getAdminToken();
 
-      if (!token) {
-        router.replace("/login");
+      if (!token || isSessionTimedOut()) {
+        clearAdminSession();
+        router.replace(
+          isSessionTimedOut() ? "/login?reason=inactivity" : "/login"
+        );
         return;
       }
 
@@ -69,23 +89,16 @@ export default function DashboardPage() {
           );
         }
 
+        recordActivity();
+
         setUsername(
           result?.data?.username ||
-            localStorage.getItem(
-              "politicalKhatiAdminUsername"
-            ) ||
+            getAdminUsername() ||
             "Admin"
         );
       } catch {
-        localStorage.removeItem(
-          "politicalKhatiAdminToken"
-        );
-
-        localStorage.removeItem(
-          "politicalKhatiAdminUsername"
-        );
-
-        router.replace("/login");
+        clearAdminSession();
+        router.replace("/login?reason=expired");
       } finally {
         setIsCheckingAuth(false);
       }
@@ -101,14 +114,7 @@ export default function DashboardPage() {
   */
 
   const handleLogout = () => {
-    localStorage.removeItem(
-      "politicalKhatiAdminToken"
-    );
-
-    localStorage.removeItem(
-      "politicalKhatiAdminUsername"
-    );
-
+    clearAdminSession();
     router.replace("/login");
   };
 

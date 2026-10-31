@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { clearAdminSession, setAdminSession } from "../lib/auth";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5010";
@@ -17,14 +18,21 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const existingToken = localStorage.getItem(
-      "politicalKhatiAdminToken"
-    );
+    // Clear any previous session so login is always required when visiting this page
+    clearAdminSession();
 
-    if (existingToken) {
-      router.replace("/dashboard");
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const reason = params.get("reason");
+      if (reason === "inactivity") {
+        setError(
+          "You were logged out due to 15 minutes of inactivity. Please sign in again."
+        );
+      } else if (reason === "expired") {
+        setError("Your session has expired. Please sign in again.");
+      }
     }
-  }, [router]);
+  }, []);
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -58,13 +66,8 @@ export default function LoginPage() {
         throw new Error("Login token was not received");
       }
 
-      localStorage.setItem(
-        "politicalKhatiAdminToken",
-        token
-      );
-
-      localStorage.setItem(
-        "politicalKhatiAdminUsername",
+      setAdminSession(
+        token,
         result?.data?.admin?.username || username.trim()
       );
 
